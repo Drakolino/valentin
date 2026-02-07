@@ -1,170 +1,453 @@
-<script>
-  const stage = document.getElementById('stage');
-  const yesBtn = document.getElementById('yes');
-  const noBtn  = document.getElementById('no');
-  const result = document.getElementById('result');
-  const hint   = document.getElementById('hint');
-  const hearts = document.getElementById('hearts');
-  const confettiLayer = document.getElementById('confetti');
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pregunta importante 💘</title>
 
-  // ✅ Discord webhook
-  const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1469489771620335863/lbfuuTnC-tyEpyetWNHjLRlB8_9nzGoUGvpTo5rQZTufSF6MhKk_jB2cbfx663AR9sn3";
+  <!-- Font (bonita y clean) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
-  // 🔑 Token único del link (ej: ?t=suzy_93KQ1)
-  const TOKEN = new URLSearchParams(location.search).get("t") || "";
-
-  async function sendToDiscord(answer){
-    try{
-      const payload = {
-        username: "Valentín Bot 💘",
-        content: `💌 Respuesta: **${answer}**\n🔑 Token: **${TOKEN || "sin-token"}**\n🌐 Página: ${location.href}`
-      };
-
-      await fetch(DISCORD_WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-    } catch (e) {
-      console.warn("No se pudo enviar al webhook:", e);
-    }
-  }
-
-  let yesScale = 1;
-  let dodges = 0;
-
-  // Para que sea juguetón pero justo:
-  const MAX_DODGES = 7;       // cuántas veces se escapa el "No"
-  const MAX_YES_SCALE = 2.15; // tamaño máximo del "Sí"
-
-  // ---------- Floating hearts generator ----------
-  const heartChars = ["💗","💖","💘","💝","💞","💓","💕"];
-  function spawnHeart(){
-    const h = document.createElement('div');
-    h.className = 'heart';
-    h.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
-    const left = Math.random()*100;
-    const dur = 6 + Math.random()*6; // 6-12s
-    const size = 14 + Math.random()*14;
-    h.style.left = left + 'vw';
-    h.style.bottom = (-20 - Math.random()*40) + 'px';
-    h.style.fontSize = size + 'px';
-    h.style.animationDuration = dur + 's';
-    h.style.animationDelay = (Math.random()*2) + 's';
-    hearts.appendChild(h);
-    setTimeout(() => h.remove(), (dur+3)*1000);
-  }
-  for(let i=0;i<10;i++) spawnHeart();
-  setInterval(spawnHeart, 900);
-
-  // ---------- Helpers ----------
-  function place(btn, x, y) {
-    const rect = stage.getBoundingClientRect();
-    const b = btn.getBoundingClientRect();
-
-    const maxX = rect.width - b.width - 10;
-    const maxY = rect.height - b.height - 10;
-
-    const clampedX = Math.max(10, Math.min(x, maxX));
-    const clampedY = Math.max(10, Math.min(y, maxY));
-
-    btn.style.left = clampedX + 'px';
-    btn.style.top  = clampedY + 'px';
-  }
-
-  function randomSpot(btn) {
-    const rect = stage.getBoundingClientRect();
-    const b = btn.getBoundingClientRect();
-    const x = Math.random() * (rect.width - b.width - 20) + 10;
-    const y = Math.random() * (rect.height - b.height - 20) + 10;
-    place(btn, x, y);
-  }
-
-  function growYes() {
-    yesScale = Math.min(MAX_YES_SCALE, yesScale + 0.13);
-    yesBtn.style.transform = `scale(${yesScale})`;
-  }
-
-  function setEndState() {
-    yesBtn.disabled = true;
-    noBtn.disabled = true;
-    yesBtn.style.cursor = "default";
-    noBtn.style.cursor = "default";
-    noBtn.style.opacity = 0.75;
-  }
-
-  // ---------- Confetti ----------
-  function confettiBurst() {
-    const pieces = 120;
-    const colors = ["#22c55e","#16a34a","#fb7185","#ef4444","#a855f7","#60a5fa","#f59e0b"];
-    const w = window.innerWidth;
-
-    for (let i=0;i<pieces;i++){
-      const p = document.createElement('i');
-      const x = Math.random()*w;
-      const delay = Math.random()*0.15;
-      const sizeW = 6 + Math.random()*8;
-      const sizeH = 10 + Math.random()*14;
-
-      p.style.left = x + "px";
-      p.style.top = (-20 - Math.random()*60) + "px";
-      p.style.width = sizeW + "px";
-      p.style.height = sizeH + "px";
-      p.style.background = colors[Math.floor(Math.random()*colors.length)];
-      p.style.animationDelay = delay + "s";
-      p.style.transform = `translateY(-20px) rotate(${Math.random()*180}deg)`;
-      confettiLayer.appendChild(p);
-
-      setTimeout(() => p.remove(), 1600);
-    }
-  }
-
-  // ---------- Interactions ----------
-  noBtn.addEventListener('mouseenter', () => {
-    if (noBtn.disabled) return;
-
-    if (dodges >= MAX_DODGES) {
-      hint.textContent = "Ok ok 😅 ya puedes darle a 'No' si de verdad quieres.";
-      return;
+  <style>
+    :root{
+      --bg1:#ffe8f2;
+      --bg2:#fff7fb;
+      --card:#ffffffcc;
+      --stroke: rgba(0,0,0,.06);
+      --shadow: 0 18px 60px rgba(0,0,0,.12);
+      --green1:#22c55e;
+      --green2:#16a34a;
+      --red1:#fb7185;
+      --red2:#ef4444;
+      --text:#1f2937;
+      --muted: rgba(31,41,55,.68);
+      --radius: 22px;
     }
 
-    dodges++;
-    growYes();
-    randomSpot(noBtn);
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 600px at 20% 10%, var(--bg1), transparent 60%),
+        radial-gradient(900px 700px at 80% 20%, #ffd6e8, transparent 55%),
+        radial-gradient(900px 700px at 50% 100%, var(--bg2), transparent 60%),
+        linear-gradient(180deg, #fff, #fff);
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+      padding: 18px;
+    }
 
-    const remaining = MAX_DODGES - dodges;
-    hint.textContent = remaining > 0
-      ? `Intentos traviesos restantes: ${remaining} 😈`
-      : "Ok ok 😅 ya puedes darle a 'No' si de verdad quieres.";
-  });
+    /* Floating hearts */
+    .hearts{
+      position: fixed;
+      inset: 0;
+      pointer-events:none;
+      z-index: 0;
+      opacity: .9;
+      filter: blur(.1px);
+    }
+    .heart{
+      position:absolute;
+      font-size: 18px;
+      opacity: .35;
+      animation: floatUp linear infinite;
+      transform: translateY(0);
+    }
+    @keyframes floatUp{
+      from{ transform: translateY(40px) translateX(0) scale(.9); opacity:.0; }
+      10%{ opacity:.35; }
+      to{ transform: translateY(-110vh) translateX(40px) scale(1.1); opacity:0; }
+    }
 
-  yesBtn.addEventListener('click', async () => {
-    if (yesBtn.disabled) return;
+    .card{
+      position:relative;
+      width: min(640px, 95vw);
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      padding: 30px 22px 20px;
+      z-index: 2;
+      overflow:hidden;
+    }
 
-    await sendToDiscord("SÍ 💚");
+    .glow{
+      position:absolute;
+      inset:-40px;
+      background:
+        radial-gradient(500px 220px at 30% 10%, rgba(34,197,94,.18), transparent 60%),
+        radial-gradient(520px 240px at 75% 20%, rgba(251,113,133,.20), transparent 60%);
+      z-index:0;
+    }
 
-    result.textContent = "Yesss 🥹💚 ¡Entonces es una cita! Te escribo los detalles.";
-    hint.textContent = "Prometido: la vamos a pasar bonito 😌";
-    confettiBurst();
-    setEndState();
-    yesBtn.style.transform = `scale(${Math.min(MAX_YES_SCALE, yesScale + 0.15)})`;
-  });
+    .content{ position:relative; z-index:1; }
 
-  noBtn.addEventListener('click', async () => {
-    if (noBtn.disabled) return;
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(0,0,0,.06);
+      background: rgba(255,255,255,.65);
+      font-size: 13px;
+      color: rgba(0,0,0,.65);
+      margin-bottom: 10px;
+    }
 
-    await sendToDiscord("NO 💔");
+    h1{
+      margin: 8px 0 6px;
+      font-size: clamp(22px, 3.6vw, 30px);
+      letter-spacing: -.3px;
+    }
 
-    result.textContent = "Está bien 💛 Gracias por ser honesta. Cero presión, todo bien 🙂";
-    hint.textContent = "Si algún día te nace, me dices. Igual me caes súper bien.";
-    setEndState();
-  });
+    .sub{
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
 
-  // ---------- Init positions ----------
-  function initPositions(){
-    place(yesBtn, stage.clientWidth * 0.29, stage.clientHeight * 0.60);
-    place(noBtn,  stage.clientWidth * 0.62, stage.clientHeight * 0.38);
-  }
-  window.addEventListener('load', initPositions);
-  window.addEventListener('resize', initPositions);
-</script>
+    .stage{
+      position: relative;
+      width: 100%;
+      height: 260px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.55);
+      border:1px solid rgba(0,0,0,.05);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
+      overflow:hidden;
+    }
+
+    .stage::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(700px 260px at 50% 0%, rgba(0,0,0,.03), transparent 65%),
+        radial-gradient(600px 260px at 50% 120%, rgba(0,0,0,.03), transparent 65%);
+      pointer-events:none;
+    }
+
+    .btn{
+      position:absolute;
+      border:0;
+      cursor:pointer;
+      padding: 14px 22px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 16px;
+      user-select:none;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
+      box-shadow: 0 12px 28px rgba(0,0,0,.10);
+      outline: none;
+    }
+
+    .btn:active{ transform: scale(.97); }
+
+    #yes{
+      background: linear-gradient(135deg, var(--green1), var(--green2));
+      color:white;
+      box-shadow: 0 16px 34px rgba(34,197,94,.26);
+    }
+    #yes:hover{ filter: brightness(1.05); transform: scale(1.03); }
+
+    #no{
+      background: linear-gradient(135deg, var(--red1), var(--red2));
+      color:white;
+      opacity: .92;
+    }
+    #no:hover{ filter: brightness(1.05); transform: scale(1.02); }
+
+    .result{
+      margin-top: 14px;
+      min-height: 26px;
+      font-weight: 700;
+      font-size: 15px;
+      text-align:center;
+    }
+
+    .hint{
+      margin-top: 10px;
+      font-size: 12px;
+      text-align:center;
+      color: rgba(31,41,55,.62);
+    }
+
+    .footer{
+      margin-top: 14px;
+      text-align:center;
+      font-size: 12px;
+      color: rgba(31,41,55,.55);
+    }
+
+    .row{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 12px;
+    }
+
+    .pill{
+      padding: 8px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.6);
+      border: 1px solid rgba(0,0,0,.05);
+      font-size: 12px;
+      color: rgba(31,41,55,.70);
+    }
+
+    /* Confetti */
+    .confetti{
+      position: fixed;
+      inset: 0;
+      pointer-events:none;
+      z-index: 5;
+      overflow:hidden;
+    }
+    .confetti i{
+      position:absolute;
+      width: 9px;
+      height: 14px;
+      border-radius: 2px;
+      opacity: .9;
+      animation: confettiFall 1.4s ease-in forwards;
+      transform: translateY(-20px) rotate(0deg);
+    }
+    @keyframes confettiFall{
+      to{ transform: translateY(110vh) rotate(540deg); opacity:0; }
+    }
+
+    /* little bounce on title emoji */
+    .sparkle{
+      display:inline-block;
+      animation: pop 1.2s ease-in-out infinite;
+      transform-origin: center;
+    }
+    @keyframes pop{
+      0%,100%{ transform: translateY(0) rotate(-10deg) scale(1); }
+      50%{ transform: translateY(-2px) rotate(10deg) scale(1.06); }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .heart, .sparkle, .confetti i{ animation:none !important; }
+      .btn{ transition:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="hearts" id="hearts"></div>
+  <div class="confetti" id="confetti"></div>
+
+  <div class="card">
+    <div class="glow"></div>
+
+    <div class="content">
+      <div class="badge">💌 Mensajito importante <span class="sparkle">✨</span></div>
+
+      <h1>Suzy… ¿quieres ser mi Valentín? 💘</h1>
+      <p class="sub">Prometo snacks, una salida chida y buena vibra 😌</p>
+
+      <div class="stage" id="stage" aria-label="Área de interacción">
+        <button class="btn" id="yes">Sí 💚</button>
+        <button class="btn" id="no">No 💔</button>
+      </div>
+
+      <div class="row">
+        <div class="pill">0 presión 🙂</div>
+        <div class="pill">100% vibe 😌</div>
+        <div class="pill">+ snacks 🍫</div>
+      </div>
+
+      <div class="result" id="result"></div>
+      <div class="hint" id="hint">Tip: si hoy estás cansada, puedes decidir cuando quieras.</div>
+      <div class="footer">Hecho con cariño ✨</div>
+    </div>
+  </div>
+
+  <script>
+    const stage = document.getElementById('stage');
+    const yesBtn = document.getElementById('yes');
+    const noBtn  = document.getElementById('no');
+    const result = document.getElementById('result');
+    const hint   = document.getElementById('hint');
+    const hearts = document.getElementById('hearts');
+    const confettiLayer = document.getElementById('confetti');
+
+    // ✅ TU WEBHOOK
+    const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1469489771620335863/lbfuuTnC-tyEpyetWNHjLRlB8_9nzGoUGvpTo5rQZTufSF6MhKk_jB2cbfx663AR9sn3";
+
+    // 🔑 Token único del link (ej: ?t=suzy_93KQ1)
+    const TOKEN = new URLSearchParams(location.search).get("t") || "";
+
+    // ✅ Envío sin CORS/preflight usando FormData(payload_json)
+    async function sendToDiscord(answer){
+      try{
+        const payload = {
+          username: "Valentín Bot 💘",
+          content: `💌 Respuesta: **${answer}**\n🔑 Token: **${TOKEN || "sin-token"}**\n🌐 Página: ${location.href}`
+        };
+
+        const form = new FormData();
+        form.append("payload_json", JSON.stringify(payload));
+
+        await fetch(DISCORD_WEBHOOK, {
+          method: "POST",
+          body: form
+        });
+      } catch (e) {
+        console.warn("No se pudo enviar al webhook:", e);
+      }
+    }
+
+    let yesScale = 1;
+    let dodges = 0;
+
+    const MAX_DODGES = 7;
+    const MAX_YES_SCALE = 2.15;
+
+    // ---------- Floating hearts generator ----------
+    const heartChars = ["💗","💖","💘","💝","💞","💓","💕"];
+    function spawnHeart(){
+      const h = document.createElement('div');
+      h.className = 'heart';
+      h.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
+      const left = Math.random()*100;
+      const dur = 6 + Math.random()*6; // 6-12s
+      const size = 14 + Math.random()*14;
+      h.style.left = left + 'vw';
+      h.style.bottom = (-20 - Math.random()*40) + 'px';
+      h.style.fontSize = size + 'px';
+      h.style.animationDuration = dur + 's';
+      h.style.animationDelay = (Math.random()*2) + 's';
+      hearts.appendChild(h);
+      setTimeout(() => h.remove(), (dur+3)*1000);
+    }
+    for(let i=0;i<10;i++) spawnHeart();
+    setInterval(spawnHeart, 900);
+
+    // ---------- Helpers ----------
+    function place(btn, x, y) {
+      const rect = stage.getBoundingClientRect();
+      const b = btn.getBoundingClientRect();
+
+      const maxX = rect.width - b.width - 10;
+      const maxY = rect.height - b.height - 10;
+
+      const clampedX = Math.max(10, Math.min(x, maxX));
+      const clampedY = Math.max(10, Math.min(y, maxY));
+
+      btn.style.left = clampedX + 'px';
+      btn.style.top  = clampedY + 'px';
+    }
+
+    function randomSpot(btn) {
+      const rect = stage.getBoundingClientRect();
+      const b = btn.getBoundingClientRect();
+      const x = Math.random() * (rect.width - b.width - 20) + 10;
+      const y = Math.random() * (rect.height - b.height - 20) + 10;
+      place(btn, x, y);
+    }
+
+    function growYes() {
+      yesScale = Math.min(MAX_YES_SCALE, yesScale + 0.13);
+      yesBtn.style.transform = `scale(${yesScale})`;
+    }
+
+    function setEndState() {
+      yesBtn.disabled = true;
+      noBtn.disabled = true;
+      yesBtn.style.cursor = "default";
+      noBtn.style.cursor = "default";
+      noBtn.style.opacity = 0.75;
+    }
+
+    // ---------- Confetti ----------
+    function confettiBurst() {
+      const pieces = 120;
+      const colors = ["#22c55e","#16a34a","#fb7185","#ef4444","#a855f7","#60a5fa","#f59e0b"];
+      const w = window.innerWidth;
+
+      for (let i=0;i<pieces;i++){
+        const p = document.createElement('i');
+        const x = Math.random()*w;
+        const delay = Math.random()*0.15;
+        const sizeW = 6 + Math.random()*8;
+        const sizeH = 10 + Math.random()*14;
+
+        p.style.left = x + "px";
+        p.style.top = (-20 - Math.random()*60) + "px";
+        p.style.width = sizeW + "px";
+        p.style.height = sizeH + "px";
+        p.style.background = colors[Math.floor(Math.random()*colors.length)];
+        p.style.animationDelay = delay + "s";
+        p.style.transform = `translateY(-20px) rotate(${Math.random()*180}deg)`;
+        confettiLayer.appendChild(p);
+
+        setTimeout(() => p.remove(), 1600);
+      }
+    }
+
+    // ---------- Interactions ----------
+    noBtn.addEventListener('mouseenter', () => {
+      if (noBtn.disabled) return;
+
+      if (dodges >= MAX_DODGES) {
+        hint.textContent = "Ok ok 😅 ya puedes darle a 'No' si de verdad quieres.";
+        return;
+      }
+
+      dodges++;
+      growYes();
+      randomSpot(noBtn);
+
+      const remaining = MAX_DODGES - dodges;
+      hint.textContent = remaining > 0
+        ? `Intentos traviesos restantes: ${remaining} 😈`
+        : "Ok ok 😅 ya puedes darle a 'No' si de verdad quieres.";
+    });
+
+    yesBtn.addEventListener('click', async () => {
+      if (yesBtn.disabled) return;
+
+      await sendToDiscord("SÍ 💚");
+
+      result.textContent = "Yesss 🥹💚 ¡Entonces es una cita! Te escribo los detalles.";
+      hint.textContent = "Prometido: la vamos a pasar bonito 😌";
+      confettiBurst();
+      setEndState();
+      yesBtn.style.transform = `scale(${Math.min(MAX_YES_SCALE, yesScale + 0.15)})`;
+    });
+
+    noBtn.addEventListener('click', async () => {
+      if (noBtn.disabled) return;
+
+      await sendToDiscord("NO 💔");
+
+      result.textContent = "Está bien 💛 Gracias por ser honesta. Cero presión, todo bien 🙂";
+      hint.textContent = "Si algún día te nace, me dices. Igual me caes súper bien.";
+      setEndState();
+    });
+
+    // ---------- Init positions ----------
+    function initPositions(){
+      place(yesBtn, stage.clientWidth * 0.29, stage.clientHeight * 0.60);
+      place(noBtn,  stage.clientWidth * 0.62, stage.clientHeight * 0.38);
+    }
+    window.addEventListener('load', initPositions);
+    window.addEventListener('resize', initPositions);
+  </script>
+</body>
+</html>
